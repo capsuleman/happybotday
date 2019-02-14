@@ -1,3 +1,4 @@
+process.env["NTBA_FIX_319"] = 1;
 const TelegramBot = require('node-telegram-bot-api');
 
 const config = require('./config');
@@ -13,6 +14,8 @@ bot.onText(/\/start/, (msg, _) => {
 
 bot.onText(/\/connect/, (msg, _) => {
     const chatId = msg.chat.id;
-    const resp = `Pour vous identifier, connectez-vous via l\'OAuth2 de ViaRézo depuis ce lien : ${config.website.protocol}://${config.website.hostname}/${chatId}`;
+    const resp = `Pour vous identifier, connectez-vous via l\'OAuth2 de ViaRézo depuis ce lien : ${config.website.protocol}://${config.website.hostname}/?chatid=${chatId}`;
     bot.sendMessage(chatId, resp);
 });
+
+module.exports = bot;
