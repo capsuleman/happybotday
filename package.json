@@ -1,0 +1,24 @@
+{
+  "name": "happy-botday",
+  "version": "1.0.0",
+  "description": "Bot pour souhaiter des joyeux anniversaires par asso",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.viarezo.fr/capsule_man/happy-botday"
+  },
+  "keywords": [
+    "bot",
+    "telegram",
+    "linkcs",
+    "oauth2"
+  ],
+  "author": "capsule_man",
+  "license": "ISC",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.30.0"
+  }
+}
