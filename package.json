@@ -19,6 +19,7 @@
   "author": "capsule_man",
   "license": "ISC",
   "dependencies": {
+    "express": "^4.16.4",
     "node-telegram-bot-api": "^0.30.0"
   }
 }

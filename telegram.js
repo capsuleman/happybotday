@@ -13,6 +13,6 @@ bot.onText(/\/start/, (msg, _) => {
 
 bot.onText(/\/connect/, (msg, _) => {
     const chatId = msg.chat.id;
-    const resp = `Pour vous identifier, connectez-vous via l\'OAuth2 de ViaRézo depuis ce lien : ${config.website.protocol}://${config.website.url}/${chatId}`;
+    const resp = `Pour vous identifier, connectez-vous via l\'OAuth2 de ViaRézo depuis ce lien : ${config.website.protocol}://${config.website.hostname}/${chatId}`;
     bot.sendMessage(chatId, resp);
 });
