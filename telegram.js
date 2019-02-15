@@ -3,6 +3,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const Token = require('./models/Token');
 
 const config = require('./config');
+const { sendRequest, getBirthdays } = require('./requests');
 
 
 const bot = new TelegramBot(config.telegram.token, { polling: true });
@@ -50,6 +51,22 @@ bot.onText(/\/disconnect/, (msg, _) => {
         if (!token) return bot.sendMessage(chatId, 'Pas de compte connecté');
         const resp = `@${token.username} n'est plus connecté à l'OAuth2.`;
         bot.sendMessage(chatId, resp);
+    })
+});
+
+bot.onText(/\/birthdays/, (msg, _) => {
+    const chatId = msg.chat.id;
+    Token.findOne({
+        chatId: chatId,
+        expiration: { $gt: Date.now() }
+    }).then(token => {
+        return getBirthdays(token.token)
+    }).then(users => {
+        var msg = 'Joyeux anniversaire à :\n'
+        users.forEach(user => {
+            msg += `${user.name}\n`
+        });
+        bot.sendMessage(chatId, msg);
     })
 });
 
