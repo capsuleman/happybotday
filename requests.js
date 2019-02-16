@@ -1,9 +1,9 @@
 const rp = require('request-promise');
 
-const Token = require('./models/Token');
+const Channel = require('./models/Channel');
 
 
-function sendRequest(req, token, callback) {
+function sendRequest(req, token) {
     const options = {
         headers: { 'Authorization': `Bearer ${token}` },
         json: true
@@ -15,7 +15,7 @@ function sendRequest(req, token, callback) {
 
 
 function getBirthdays(token) {
-    req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {id  firstName  lastName  roles {sector {composition {association {id}}}}}'
+    const req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {id  firstName  lastName  roles {sector {composition {association {id}}}}}'
     return sendRequest(req, token).then(body => {
         const users = [];
         body.data.users.forEach(user => {
@@ -31,4 +31,21 @@ function getBirthdays(token) {
     })
 }
 
-module.exports = { getBirthdays, sendRequest };
+
+function searchGroups(token, term) {
+    const req = `query {searchAssociations(term: "${term}") {id name code}}`
+    return sendRequest(req, token).then(body => {
+        if (!body.data) return;
+        return body.data.searchAssociations;
+    }).catch(err => { console.error(err) })
+}
+
+function getGroupById(token, id) {
+    const req = `query {association(id: ${id}) {name}}`
+    return sendRequest(req, token).then(body => {
+        if (!body.data) return;
+        return body.data.association.name;
+    }).catch(err => { console.error(err) })
+}
+
+module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById };
