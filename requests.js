@@ -1,9 +1,7 @@
 const rp = require('request-promise');
 
-const Channel = require('./models/Channel');
-
-
-function sendRequest(req, token) {
+// Fonction d'envoi d'une requête au GraphQL de LinkCS 
+async function sendRequest(req, token) {
     const options = {
         headers: { 'Authorization': `Bearer ${token}` },
         json: true
@@ -13,7 +11,7 @@ function sendRequest(req, token) {
     return rp(`${url}?query=${req}`, options)
 }
 
-
+// Récupération de tous les personnes et leurs assos ayant leur anniversaire
 function getBirthdays(token) {
     const req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {id  firstName  lastName  roles {sector {composition {association {id}}}}}'
     return sendRequest(req, token).then(body => {
@@ -31,7 +29,7 @@ function getBirthdays(token) {
     })
 }
 
-
+// Récupération de la recherche de groupe
 function searchGroups(token, term) {
     const req = `query {searchAssociations(term: "${term}") {id name code}}`
     return sendRequest(req, token).then(body => {
@@ -40,6 +38,7 @@ function searchGroups(token, term) {
     }).catch(err => { console.error(err) })
 }
 
+// Récupération du nom de l'asso ayant l'ID donnée
 function getGroupById(token, id) {
     const req = `query {association(id: ${id}) {name}}`
     return sendRequest(req, token).then(body => {
