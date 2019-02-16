@@ -6,7 +6,7 @@ const channelSchema = new mongoose.Schema({
     username: String,
     chatId: Number,
     state: String,
-    groups: [{ id: Number, name: String }]
+    groups: [Number]
 })
 
 module.exports = mongoose.model('Channel', channelSchema);
