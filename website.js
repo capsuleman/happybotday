@@ -1,7 +1,7 @@
 const config = require('./config');
 
 const app = require('express')();
-const request = require('request');
+const rp = require('request-promise');
 const bot = require('./telegram');
 const Channel = require('./models/Channel');
 
@@ -28,7 +28,9 @@ app.get('/background.jpg', function (req, res) {
     res.sendFile(`${__dirname}/background.jpg`)
 })
 
+
 app.get('/auth', function (req, res) {
+
     if (!req.query.code || !req.query.state) return res.sendFile(`${__dirname}/auth.html`)
 
     const options = {
@@ -44,21 +46,22 @@ app.get('/auth', function (req, res) {
         }
     }
 
-    request(options, (err, res, body) => {
-        if (!err && res.statusCode == 200) {
-            Channel.findOne({ state: req.query.state }).then(chan => {
-                rep = JSON.parse(body)
-                if (!chan) { return req.query.state }
-                chan.token = rep.access_token;
-                chan.expiration = rep.expires_at*1000;
-                chan.state = '';
-                return chan.save();
-            }).then(chan => {
-                bot.sendMessage(chan.chatId, `@${chan.username} s'est connecté à OAuth2, shall we begin?`)
-            })
-        }
+    return rp(options).then(body => {
+        return Promise.all([body, Channel.findOne({ state: req.query.state })])
+    }).then(([body, chan]) => {
+        if (!chan) { return req.query.state }
+        rep = JSON.parse(body);
+        console.log(rep);
+        chan.token = rep.access_token;
+        chan.refresh = rep.refresh_token;
+        chan.expiration = rep.expires_at * 1000;
+        chan.state = '';
+        return chan.save()
+    }).then(chan => {
+        bot.sendMessage(chan.chatId, `@${chan.username} s'est connecté à OAuth2, shall we begin?`);
+        return res.redirect(301, `${config.website.protocol}://${config.website.hostname}/auth`)
     })
-    return res.redirect(301, `${config.website.protocol}://${config.website.hostname}/auth`);
 })
+
 
 module.exports = app;

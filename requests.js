@@ -1,4 +1,5 @@
 const rp = require('request-promise');
+const config = require('./config');
 
 // Fonction d'envoi d'une requête au GraphQL de LinkCS 
 async function sendRequest(req, token) {
@@ -13,7 +14,7 @@ async function sendRequest(req, token) {
 
 // Récupération de tous les personnes et leurs assos ayant leur anniversaire
 function getBirthdays(token) {
-    const req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {id  firstName  lastName  roles {sector {composition {association {id}}}}}'
+    const req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {firstName  lastName  roles {sector {composition {association {id}}}}}'
     return sendRequest(req, token).then(body => {
         const users = [];
         body.data.users.forEach(user => {
@@ -47,4 +48,30 @@ function getGroupById(token, id) {
     }).catch(err => { console.error(err) })
 }
 
-module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById };
+// Récupération d'un nouveau token
+function getNewToken(chan) {
+
+    const options = {
+        url: 'https://auth.viarezo.fr/oauth/token',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        form: {
+            grant_type: 'refresh_token',
+            refresh_token: chan.refresh,
+            client_id: config.oauth2.clientid,
+            client_secret: config.oauth2.secretid
+        }
+    }
+
+    return rp(options).then(body => {
+        if (!chan) { return req.query.state }
+        rep = JSON.parse(body);
+        console.log(rep);
+        chan.token = rep.access_token;
+        chan.refresh = rep.refresh_token;
+        chan.expiration = rep.expires_at * 1000;
+        return chan.save()
+    })
+};
+
+module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById, getNewToken };
