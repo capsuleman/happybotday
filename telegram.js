@@ -5,7 +5,7 @@ var TelegramBot = require('node-telegram-bot-api');
 var schedule = require('node-schedule');
 
 // Modules propres
-var Channel = require('./models/Channel');
+var { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, getGroups } = require('./connection-db');
 var { getBirthdays, searchGroups, getGroupById, getNewToken } = require('./requests');
 
 // Configurations
@@ -16,20 +16,28 @@ var bot = new TelegramBot(config.telegram.token, { polling: true });
 var schedules = {};
 
 
+// En cas de redémarrage de l'appli
+query(`SELECT chatId, schedule FROM channel WHERE schedule <> ""`).then(rep => {
+    rep.forEach(chan => {
+
+    })
+})
+
+
 // A la connexion, création d'un document Channel dans MongoDB
 bot.onText(/\/start/, msg => {
     const chatId = msg.chat.id;
-    return Channel.findOne({
-        chatId: chatId
-    }).then(chan => {
+    return getChanByChatId(chatId).then(chan => {
         // /start déjà fait...
         if (chan) return bot.sendMessage(chatId, 'Vous avez déjà fait lancé le bot sur cette conversation. Pour tout réinitialiser, faites /reset.')
-        return Channel.create({
+        return createChan({
             chatId: chatId,
             username: '',
             state: '',
             token: '',
-            groups: []
+            refresh: '',
+            expiration: '',
+            schedule: ''
         }).then(_ => {
             const resp = 'Holà, je suis le Happy Botday, je suis là pour vous souhaiter vous rapeller les anniversaires de vos potes !\nPour commencer, il faut que quelqu\'un s\'identifie : /connect';
             bot.sendMessage(chatId, resp);
@@ -45,11 +53,9 @@ bot.onText(/\/reset/, msg => {
         schedule[chatId].cancel();
         delete (schedule[chatId]);
     }
-    return Channel.findOneAndDelete({
-        chatId: chatId
-    }).then(_ => {
+    return deleteChanByChatId(chatId).then(_ => {
         const resp = 'Toutes vos paramètres ont été supprimés. Pour recommencer à m\'utiliser, faites /start.';
-        return bot.sendMessage(chatId, resp);
+        bot.sendMessage(chatId, resp);
     })
 })
 
@@ -57,9 +63,7 @@ bot.onText(/\/reset/, msg => {
 // Si rien n'a été fait avant, propose un lien de connexion à l'OAuth2 de VR
 bot.onText(/\/connect/, (msg, _) => {
     const chatId = msg.chat.id;
-    Channel.findOne({
-        chatId: chatId
-    }).then(chan => {
+    getChanByChatId(chatId).then(chan => {
         // start pas encore fait
         if (!chan) return bot.sendMessage(chatId, 'Avant de vous authentifier, faites /start.');
         // /connect déjà fait, renvoie vers le lien précédent
@@ -69,7 +73,7 @@ bot.onText(/\/connect/, (msg, _) => {
         // dans le reste des cas, création d'un lien pour l'authentification et enregistrement dans l'objet pour être sur
         chan.state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         chan.username = msg.from.username;
-        chan.save().then(chan => {
+        modifyChan(chan).then(chan => {
             const resp = `Pour vous identifier, connectez-vous via l\'OAuth2 de ViaRézo depuis ce lien :\n${config.website.protocol}://${config.website.hostname}/?state=${chan.state}`;
             return bot.sendMessage(chatId, resp);
         })
@@ -79,23 +83,19 @@ bot.onText(/\/connect/, (msg, _) => {
 // Annulation de la demande de connexion
 bot.onText(/\/cancel/, msg => {
     const chatId = msg.chat.id;
-    Channel.findOne({
-        chatId: chatId
-    }).then(chan => {
+    getChanByChatId(chatId).then(chan => {
         // ne peut pas annuler une demande déjà acceptée
         if (chan.token.length !== 0) return bot.sendMessage(chatId, 'La demande d\'athentification a déjà été acceptée, elle ne peut pas être annulée. Pour se déconnecter, faites /disconnect.')
         chan.username = '';
         chan.state = '';
-        return chan.save().then(chan => {
-            return bot.sendMessage(chatId, 'La demande d\'authentification a été annulée. Vous pouvez vous reconnecter avec /connect.')
-        })
+        modifyChan(chan).then(_ => bot.sendMessage(chatId, 'La demande d\'authentification a été annulée. Vous pouvez vous reconnecter avec /connect.'))
     })
 })
 
 // Permet de déconnecter l'utilisateur qui s'est authentifié sur l'OAuth2
 bot.onText(/\/disconnect/, msg => {
     const chatId = msg.chat.id;
-    Channel.findOne({ chatId: chatId }).then(chan => {
+    getChanByChatId(chatId).then(chan => {
         // s'il n'y a pas de token, personne ne s'est connecté
         if (chan.token.length === 0) return bot.sendMessage(chatId, 'Personne ne s\'est connecté...');
         // suppression de tous les paramètres de connexion et save()
@@ -103,9 +103,7 @@ bot.onText(/\/disconnect/, msg => {
         chan.token = '';
         chan.expiration = Date.now(0);
         chan.username = '';
-        chan.save().then(_ => {
-            return bot.sendMessage(chatId, `@${username} n'est plus connecté à l'OAuth2.`);
-        })
+        modifyChan(chan).then(_ => bot.sendMessage(chatId, `@${username} n'est plus connecté à l'OAuth2.`));
     })
 });
 
@@ -113,16 +111,14 @@ bot.onText(/\/disconnect/, msg => {
 bot.onText(/\/allbirthdays/, msg => {
     const chatId = msg.chat.id;
     // recherche du token du chan actuel
-    Channel.findOne({
-        chatId: chatId,
-    }).then(chan => {
+    getChanByChatId(chatId).then(chan => {
         return getBirthdays(chan.token)
     }).then(users => {
         var msg = '**Joyeux anniversaire** à :\n'
         users.forEach(user => {
             msg += `${user.name}\n`
         });
-        return bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
     })
 });
 
@@ -130,13 +126,14 @@ bot.onText(/\/allbirthdays/, msg => {
 bot.onText(/\/birthdays/, msg => {
     const chatId = msg.chat.id;
     // recherche du token du chan actuel
-    Channel.findOne({
-        chatId: chatId,
-    }).then(chan => {
-        return Promise.all([getBirthdays(chan.token), chan])
-    }).then(([users, chan]) => {
+    getChanByChatId(chatId).then(chan => {
+        return Promise.all([
+            getBirthdays(chan.token),
+            getGroups(chatId),
+        ])
+    }).then(([users, groups]) => {
         // récupère que les personnes du jour qui font partie des groupes ciblés
-        const newUsers = users.filter(user => user.asso.some(asso => chan.groups.indexOf(asso) !== -1));
+        const newUsers = users.filter(user => user.asso.some(asso => groups.indexOf(asso) !== -1));
         if (newUsers.length === 0) return bot.sendMessage(chatId, 'Pas d\'anniversaire à souhaiter aujourd\'hui.')
         var msg = '**Joyeux anniversaire** à :\n'
         newUsers.forEach(user => {
@@ -150,9 +147,7 @@ bot.onText(/\/birthdays/, msg => {
 bot.onText(/\/search (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const research = match[1];
-    Channel.findOne({
-        chatId: chatId
-    }).then(chan => {
+    getChanByChatId(chatId).then(chan => {
         return searchGroups(chan.token, research)
     }).then(groups => {
         if (groups.length == 0) return bot.sendMessage(chatId, 'Pas de groupe à ce nom...');
@@ -170,19 +165,20 @@ bot.onText(/\/search (.+)/, (msg, match) => {
 // Ajout d'un groupe dans la liste des groupes
 bot.onText(/\/add (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
-    Channel.findOne({
-        chatId: chatId
-    }).then(chan => {
+    getChanByChatId(chatId).then(chan => {
         const id = parseInt(match[1].split(' ')[0]);
-        return Promise.all([getGroupById(chan.token, id), chan, id]);
-    }).then(([group, chan, id]) => {
+        return Promise.all([
+            getGroupById(chan.token, id),
+            getGroups(chatId),
+            id
+        ]);
+    }).then(([group, groups, id]) => {
         // si pas de groupe trouvé
         if (!group) return bot.sendMessage(chatId, 'Pas de groupe trouvé ayant cette ID');
         // si le groupe y est déjà
-        if (chan.groups.indexOf(id) !== -1) return bot.sendMessage(chatId, 'Ce groupe est déjà est dans votre liste d\'anniversaire.');
+        if (groups.indexOf(id) !== -1) return bot.sendMessage(chatId, 'Ce groupe est déjà est dans votre liste d\'anniversaire.');
         // sinon on le rajoute
-        chan.groups.push(id);
-        return chan.save().then(_ => {
+        return addGroup(chatId, id).then(_ => {
             bot.sendMessage(chatId, `Ajout du groupe \`${group}\` à la liste des anniversaires.`, { parse_mode: 'Markdown' });
         })
     })
@@ -195,19 +191,20 @@ bot.onText(/\/schedule (.+)/, (msg, match) => {
     if (!RegExp('^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$').test(time)) return bot.sendMessage(chatId, 'Le temps entré n\'est pas au format hh:mm');
     const hour = parseInt(time.split(':')[0]);
     const minute = parseInt(time.split(':')[1]);
-    Channel.findOne({
-        chatId: chatId
-    }).then(chan => {
+    getChanByChatId(chatId).then(chan => {
         if (!chan) return bot.sendMessage(chatId, 'Pas de compte enregistré, faites /start pour commencer');
         chan.schedule = time;
-        chan.save()
-    }).then(chan => {
+        return Promise.all([
+            modifyChan(chan),
+            getGroups(chatId)
+        ])
+    }).then(([chan, groups]) => {
         schedules[chan.chatId] = schedule.scheduleJob({ hour: hour, minute: minute }, function () {
             return getNewToken(chan).then(chan => {
                 return getBirthdays(chan.token)
             }).then(users => {
                 // récupère que les personnes du jour qui font partie des groupes ciblés
-                const newUsers = users.filter(user => user.asso.some(asso => chan.groups.indexOf(asso) !== -1));
+                const newUsers = users.filter(user => user.asso.some(asso => groups.indexOf(asso) !== -1));
                 if (newUsers.length === 0) return
                 var msg = '**Joyeux anniversaire** à :\n'
                 newUsers.forEach(user => {
@@ -216,6 +213,7 @@ bot.onText(/\/schedule (.+)/, (msg, match) => {
                 return bot.sendMessage(chan.chatId, msg, { parse_mode: 'Markdown' });
             })
         });
+        bot.sendMessage(chatId, `Votre rappel est configuré pour tous les jours à ${time}`);
     })
 })
 
