@@ -1,4 +1,10 @@
+// Modules extérieurs
 const rp = require('request-promise');
+
+// Modules propres
+var { modifyChan } = require('./connection-db');
+
+// Configurations
 const config = require('./config');
 
 // Fonction d'envoi d'une requête au GraphQL de LinkCS 
@@ -66,11 +72,10 @@ function getNewToken(chan) {
     return rp(options).then(body => {
         if (!chan) { return req.query.state }
         rep = JSON.parse(body);
-        console.log(rep);
         chan.token = rep.access_token;
         chan.refresh = rep.refresh_token;
         chan.expiration = rep.expires_at * 1000;
-        return chan.save()
+        return modifyChan(chan)
     })
 };
 
