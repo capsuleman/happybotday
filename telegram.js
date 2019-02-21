@@ -17,11 +17,11 @@ var schedules = {};
 
 
 // En cas de redémarrage de l'appli
-query(`SELECT chatId, schedule FROM channel WHERE schedule <> ""`).then(rep => {
-    rep.forEach(chan => {
-
-    })
-})
+// query(`SELECT chatId, schedule FROM channel WHERE schedule <> ""`).then(rep => {
+//     rep.forEach(chan => {
+// 
+//     })
+// })
 
 
 // A la connexion, création d'un document Channel dans MongoDB
