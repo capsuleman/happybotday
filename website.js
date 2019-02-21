@@ -10,7 +10,7 @@ var { modifyChan, getChanByState } = require('./connection-db');
 const config = require('./config');
 
 
-app.listen(80, config.website.hostname, () => {
+app.listen(80, '127.0.0.1', () => {
     console.log(`[express] Website is up and accessible on ${config.website.protocol}://${config.website.hostname}/`);
 })
 
