@@ -2,7 +2,7 @@
 const rp = require('request-promise');
 
 // Modules propres
-var { modifyChan } = require('./connection-db');
+var { modifyChan, getChanByState } = require('./connection-db');
 
 // Configurations
 const config = require('./config');
@@ -54,6 +54,37 @@ function getGroupById(token, id) {
     }).catch(err => { console.error(err) })
 }
 
+// Récupération d'un token
+function getFirstToken(code, state) {
+
+    const options = {
+        url: 'https://auth.viarezo.fr/oauth/token',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        form: {
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: config.website.protocol + '://' + config.website.hostname + '/auth',
+            client_id: config.oauth2.clientid,
+            client_secret: config.oauth2.secretid
+        }
+    }
+
+    return Promise.all([
+        rp(options),
+        getChanByState(state)
+    ]).then(([body, chan]) => {
+        if (!chan) return
+        rep = JSON.parse(body);
+        chan.token = rep.access_token;
+        chan.refresh = rep.refresh_token;
+        chan.expiration = rep.expires_at;
+        chan.state = '';
+        return modifyChan(chan)
+    })
+}
+
+
 // Récupération d'un nouveau token
 function getNewToken(chan) {
 
@@ -79,4 +110,4 @@ function getNewToken(chan) {
     })
 };
 
-module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById, getNewToken };
+module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById, getFirstToken, getNewToken };
