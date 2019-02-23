@@ -4,20 +4,12 @@ var schedule = require('node-schedule');
 // Modules propres
 var { modifyChan, getGroups, getSchedules } = require('./connection-db');
 var { getBirthdays, getNewToken } = require('./requests');
-var bot = require('./telegram');
 
 // Création de variables
 var schedules = {};
 
-getSchedules().then(chans => {
-    chans.forEach(chan => {
-        addSchedule(chan, chan.schedule)
-    })
-    console.log(`[schdles] reload schedules`)
-})
 
-
-function addSchedule(chan, time) {
+function addSchedule(chan, time, bot) {
     const hour = parseInt(time.split(':')[0]);
     const minute = parseInt(time.split(':')[1]);
     chan.schedule = time;
