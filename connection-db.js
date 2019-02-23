@@ -95,6 +95,11 @@ function addGroup(chatId, groupId) {
     `);
 }
 
+function removeGroup(chatId, groupId) {
+    return query(`
+    DELETE FROM groups WHERE chatId = ${chatId} AND grp = ${groupId}`)
+}
+
 function getGroups(chatId) {
     return query(`
     SELECT grp
@@ -114,4 +119,4 @@ function getSchedules() {
 }
 
 
-module.exports = { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, getChanByState, addGroup, getGroups, getSchedules };
+module.exports = { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, getChanByState, addGroup, removeGroup, getGroups, getSchedules };

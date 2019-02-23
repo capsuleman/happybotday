@@ -4,7 +4,7 @@ process.env["NTBA_FIX_319"] = 1;
 var TelegramBot = require('node-telegram-bot-api');
 
 // Modules propres
-var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, getGroups } = require('./connection-db');
+var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, removeGroup, getGroups } = require('./connection-db');
 var { getBirthdays, searchGroups, getGroupById } = require('./requests');
 var { schedules, addSchedule, deleteSchedule } = require('./schedule');
 
@@ -167,6 +167,26 @@ bot.onText(/\/add (.+)/, (msg, match) => {
     })
 })
 
+bot.onText(/\/del (.+)/, (msg, match) => {
+    const chatId = msg.chat.id;
+    getChanByChatId(chatId).then(chan => {
+        const id = parseInt(match[1].split(' ')[0]);
+        return Promise.all([
+            getGroupById(chan.token, id),
+            getGroups(chatId),
+            id
+        ]);
+    }).then(([group, groups, id]) => {
+        // si pas de groupe trouvé
+        if (!group) return bot.sendMessage(chatId, 'Pas de groupe trouvé ayant cette ID');
+        // si le groupe y est déjà
+        if (groups.indexOf(id) === -1) return bot.sendMessage(chatId, 'Ce groupe n\'est pas dans votre liste d\'anniversaire.');
+        // sinon on le rajoute
+        return removeGroup(chatId, id).then(_ => {
+            bot.sendMessage(chatId, `Retrait du groupe \`${group}\` de la liste des anniversaires.`, { parse_mode: 'Markdown' });
+        })
+    })
+})
 
 // Ajout d'un rappel
 bot.onText(/\/schedule (.+)/, (msg, match) => {
