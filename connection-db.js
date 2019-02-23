@@ -54,10 +54,10 @@ function getChanByChatId(chatId) {
     `).then(rep => rep[0]);
 }
 
-function createChan(data) {
+function createChan(chatId) {
     return query(`
     INSERT INTO channel
-    VALUES (${data.chatId}, "${data.username}", "${data.state}", "${data.token}", "${data.refresh}", "${data.expiration}", "${data.schedule}")
+    VALUES (${chatId}, "", "", "", "", "", "")
     `)
 }
 

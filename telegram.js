@@ -2,26 +2,18 @@ process.env["NTBA_FIX_319"] = 1;
 
 // Modules extérieurs
 var TelegramBot = require('node-telegram-bot-api');
-var schedule = require('node-schedule');
 
 // Modules propres
-var { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, getGroups } = require('./connection-db');
-var { getBirthdays, searchGroups, getGroupById, getNewToken } = require('./requests');
+var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, getGroups } = require('./connection-db');
+var { getBirthdays, searchGroups, getGroupById } = require('./requests');
+var { addSchedule, deleteSchedule } = require('./schedule');
 
 // Configurations
 const config = require('./config');
 
 // Création de variables
 var bot = new TelegramBot(config.telegram.token, { polling: true });
-var schedules = {};
 
-
-// En cas de redémarrage de l'appli
-// query(`SELECT chatId, schedule FROM channel WHERE schedule <> ""`).then(rep => {
-//     rep.forEach(chan => {
-// 
-//     })
-// })
 
 
 // A la connexion, création d'un document Channel dans MongoDB
@@ -30,15 +22,7 @@ bot.onText(/\/start/, msg => {
     return getChanByChatId(chatId).then(chan => {
         // /start déjà fait...
         if (chan) return bot.sendMessage(chatId, 'Vous avez déjà fait lancé le bot sur cette conversation. Pour tout réinitialiser, faites /reset.')
-        return createChan({
-            chatId: chatId,
-            username: '',
-            state: '',
-            token: '',
-            refresh: '',
-            expiration: '',
-            schedule: ''
-        }).then(_ => {
+        return createChan(chatId).then(_ => {
             const resp = 'Holà, je suis le Happy Botday, je suis là pour vous souhaiter vous rapeller les anniversaires de vos potes !\nPour commencer, il faut que quelqu\'un s\'identifie : /connect';
             bot.sendMessage(chatId, resp);
         })
@@ -49,11 +33,10 @@ bot.onText(/\/start/, msg => {
 bot.onText(/\/reset/, msg => {
     const chatId = msg.chat.id;
     // Suppression de l'objet
-    if (schedule[chatId]) {
-        schedule[chatId].cancel();
-        delete (schedule[chatId]);
-    }
-    return deleteChanByChatId(chatId).then(_ => {
+    deleteSchedule(chatId);
+    return Promise.all([
+        deleteChanByChatId(chatId),
+    ]).then(_ => {
         const resp = 'Toutes vos paramètres ont été supprimés. Pour recommencer à m\'utiliser, faites /start.';
         bot.sendMessage(chatId, resp);
     })
@@ -67,7 +50,7 @@ bot.onText(/\/connect/, (msg, _) => {
         // start pas encore fait
         if (!chan) return bot.sendMessage(chatId, 'Avant de vous authentifier, faites /start.');
         // /connect déjà fait, renvoie vers le lien précédent
-        if (chan.state.length !== 0) return bot.sendMessage(chatId, `@${chan.username} a déjà fait une demande. Vous pouvez annuler la demande via /cancel ou @${chan.username} peut se connecter depuis ce lien :\n${config.website.protocol}://${config.website.hostname}/?state=${chan.state}.`)
+        if (chan.state.length !== 0) return bot.sendMessage(chatId, `@${chan.username} a déjà fait une demande. Vous pouvez annuler la demande via /cancel ou @${chan.username} peut se connecter depuis ce lien :\n${config.website.protocol}://${config.website.hostname}/?state=${chan.state}`)
         // authentification déjà faite
         if (chan.token.length !== 0) return bot.sendMessage(chatId, `Une connexion a déjà été faite par @${chan.username}. Pour la réinitialiser, faites /disconnect`);
         // dans le reste des cas, création d'un lien pour l'authentification et enregistrement dans l'objet pour être sur
@@ -184,44 +167,24 @@ bot.onText(/\/add (.+)/, (msg, match) => {
     })
 })
 
+
 // Ajout du temps de schedule
 bot.onText(/\/schedule (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const time = match[1];
     if (!RegExp('^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$').test(time)) return bot.sendMessage(chatId, 'Le temps entré n\'est pas au format hh:mm');
-    const hour = parseInt(time.split(':')[0]);
-    const minute = parseInt(time.split(':')[1]);
     getChanByChatId(chatId).then(chan => {
         if (!chan) return bot.sendMessage(chatId, 'Pas de compte enregistré, faites /start pour commencer');
-        chan.schedule = time;
-        return Promise.all([
-            modifyChan(chan),
-            getGroups(chatId)
-        ])
-    }).then(([chan, groups]) => {
-        schedules[chan.chatId] = schedule.scheduleJob({ hour: hour, minute: minute }, function () {
-            return getNewToken(chan).then(chan => {
-                return getBirthdays(chan.token)
-            }).then(users => {
-                // récupère que les personnes du jour qui font partie des groupes ciblés
-                const newUsers = users.filter(user => user.asso.some(asso => groups.indexOf(asso) !== -1));
-                if (newUsers.length === 0) return
-                var msg = '**Joyeux anniversaire** à :\n'
-                newUsers.forEach(user => {
-                    msg += `${user.name}\n`
-                });
-                return bot.sendMessage(chan.chatId, msg, { parse_mode: 'Markdown' });
-            })
-        });
-        bot.sendMessage(chatId, `Votre rappel est configuré pour tous les jours à ${time}`);
-    })
+        return addSchedule(chan, time, bot)
+    });
+    bot.sendMessage(chatId, `Votre rappel est configuré pour tous les jours à ${time}`);
 })
+
 
 // J'étais bien obligé (en vrai c'est pour tester)
 bot.onText(/\/nikmarine/, msg => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Nik bien Marine');
-    console.log(schedules);
 })
 
 

@@ -9,6 +9,7 @@ const config = require('./config');
 
 // Fonction d'envoi d'une requête au GraphQL de LinkCS 
 async function sendRequest(req, token) {
+    // ici faire le refresh token
     const options = {
         headers: { 'Authorization': `Bearer ${token}` },
         json: true
