@@ -105,5 +105,13 @@ function getGroups(chatId) {
     })
 }
 
+function getSchedules() {
+    return query(`
+    SELECT *
+    FROM channel
+    WHERE schedule <> ""
+    `)
+}
 
-module.exports = { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, getChanByState, addGroup, getGroups };
+
+module.exports = { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, getChanByState, addGroup, getGroups, getSchedules };

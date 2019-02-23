@@ -168,7 +168,7 @@ bot.onText(/\/add (.+)/, (msg, match) => {
 })
 
 
-// Ajout du temps de schedule
+// Ajout d'un rappel
 bot.onText(/\/schedule (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const time = match[1];
@@ -180,19 +180,20 @@ bot.onText(/\/schedule (.+)/, (msg, match) => {
     bot.sendMessage(chatId, `Votre rappel est configuré pour tous les jours à ${time}`);
 })
 
+
+// Suppression du rappel
 bot.onText(/\/unschedule/, msg => {
     const chatId = msg.chat.id;
     getChanByChatId(chatId).then(chan => {
         if (!chan) return bot.sendMessage(chatId, 'Pas de compte enregistré, faites /start pour commencer');
-        if (chan.time == '') return bot.sendMessage(chatId, 'Pas de rappel défini...');
+        if (chan.schedule == '') return bot.sendMessage(chatId, 'Pas de rappel défini...');
 
         deleteSchedule(chatId)
-        chan.time = ''
+        chan.schedule = ''
         return modifyChan(chan)
     }).then(_ => {
         bot.sendMessage(chatId, 'Votre rappel a été supprimé.')
     })
-
 })
 
 // J'étais bien obligé (en vrai c'est pour tester)

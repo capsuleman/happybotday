@@ -2,23 +2,22 @@
 var schedule = require('node-schedule');
 
 // Modules propres
-var { modifyChan, getGroups } = require('./connection-db');
+var { modifyChan, getGroups, getSchedules } = require('./connection-db');
 var { getBirthdays, getNewToken } = require('./requests');
+var bot = require('./telegram');
 
 // Création de variables
 var schedules = {};
 
+getSchedules().then(chans => {
+    chans.forEach(chan => {
+        addSchedule(chan, chan.schedule)
+    })
+    console.log(`[schdles] reload schedules`)
+})
 
 
-// En cas de redémarrage de l'appli
-// query(`SELECT chatId, schedule FROM channel WHERE schedule <> ""`).then(rep => {
-//     rep.forEach(chan => {
-// 
-//     })
-// })
-
-
-function addSchedule(chan, time, bot) {
+function addSchedule(chan, time) {
     const hour = parseInt(time.split(':')[0]);
     const minute = parseInt(time.split(':')[1]);
     chan.schedule = time;
