@@ -2,7 +2,7 @@
 var schedule = require('node-schedule');
 
 // Modules propres
-var { modifyChan, getGroups, getSchedules } = require('./connection-db');
+var { modifyChan, getGroups } = require('./connection-db');
 var { getBirthdays, getNewToken } = require('./requests');
 
 // Création de variables
