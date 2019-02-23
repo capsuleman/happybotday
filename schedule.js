@@ -13,14 +13,14 @@ function addSchedule(chan, time, bot) {
     const hour = parseInt(time.split(':')[0]);
     const minute = parseInt(time.split(':')[1]);
     chan.schedule = time;
-    return Promise.all([
-        modifyChan(chan),
-        getGroups(chan.chatId)
-    ]).then(([chan, groups]) => {
+    return modifyChan(chan).then(chan => {
         schedules[chan.chatId] = schedule.scheduleJob({ hour: hour, minute: minute }, function () {
             return getNewToken(chan).then(chan => {
-                return getBirthdays(chan.token)
-            }).then(users => {
+                return Promise.all([
+                    getBirthdays(chan.token),
+                    getGroups(chan.chatId)
+                ])
+            }).then(([users, groups]) => {
                 // récupère que les personnes du jour qui font partie des groupes ciblés
                 const newUsers = users.filter(user => user.asso.some(asso => groups.indexOf(asso) !== -1));
                 if (newUsers.length === 0) return
