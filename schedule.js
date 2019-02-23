@@ -44,9 +44,9 @@ function addSchedule(chan, time, bot) {
 };
 
 function deleteSchedule(chatId) {
-    if (schedule[chatId]) {
-        schedule[chatId].cancel();
-        delete (schedule[chatId]);
+    if (schedules[chatId]) {
+        schedules[chatId].cancel();
+        delete (schedules[chatId]);
     }
 }
 

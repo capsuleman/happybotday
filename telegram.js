@@ -6,7 +6,7 @@ var TelegramBot = require('node-telegram-bot-api');
 // Modules propres
 var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, getGroups } = require('./connection-db');
 var { getBirthdays, searchGroups, getGroupById } = require('./requests');
-var { addSchedule, deleteSchedule } = require('./schedule');
+var { schedules, addSchedule, deleteSchedule } = require('./schedule');
 
 // Configurations
 const config = require('./config');
@@ -180,11 +180,26 @@ bot.onText(/\/schedule (.+)/, (msg, match) => {
     bot.sendMessage(chatId, `Votre rappel est configuré pour tous les jours à ${time}`);
 })
 
+bot.onText(/\/unschedule/, msg => {
+    const chatId = msg.chat.id;
+    getChanByChatId(chatId).then(chan => {
+        if (!chan) return bot.sendMessage(chatId, 'Pas de compte enregistré, faites /start pour commencer');
+        if (chan.time == '') return bot.sendMessage(chatId, 'Pas de rappel défini...');
+
+        deleteSchedule(chatId)
+        chan.time = ''
+        return modifyChan(chan)
+    }).then(_ => {
+        bot.sendMessage(chatId, 'Votre rappel a été supprimé.')
+    })
+
+})
 
 // J'étais bien obligé (en vrai c'est pour tester)
 bot.onText(/\/nikmarine/, msg => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, 'Nik bien Marine');
+    console.log(schedules);
 })
 
 
