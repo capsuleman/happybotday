@@ -1,3 +1,5 @@
+// REQUESTS.JS : Envoi de requête HTTP vers l'OAuth de VR et vers LinkCS 
+
 // Modules extérieurs
 const rp = require('request-promise');
 
@@ -7,22 +9,27 @@ var { modifyChan, getChanByState } = require('./connection-db');
 // Configurations
 const config = require('./config');
 
-// Fonction d'envoi d'une requête au GraphQL de LinkCS 
-async function sendRequest(req, token) {
-    // ici faire le refresh token
-    const options = {
-        headers: { 'Authorization': `Bearer ${token}` },
-        json: true
-    }
-    const url = 'https://gateway.linkcs.fr/v1/graphql';
 
-    return rp(`${url}?query=${req}`, options)
+
+
+// Fonction d'envoi d'une requête au GraphQL de LinkCS 
+async function sendRequest(req, chan) {
+    // A chaque requête vérifie si le token est encore valable, sinon va en récupérer un nouveau
+    return getNewTokenIfNecessary(chan).then(chan => {
+        const options = {
+            headers: { 'Authorization': `Bearer ${chan.token}` },
+            json: true
+        }
+        const url = 'https://gateway.linkcs.fr/v1/graphql';
+    
+        return rp(`${url}?query=${req}`, options)    
+    })
 }
 
 // Récupération de tous les personnes et leurs assos ayant leur anniversaire
-function getBirthdays(token) {
+function getBirthdays(chan) {
     const req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {firstName  lastName  roles {sector {composition {association {id}}}}}'
-    return sendRequest(req, token).then(body => {
+    return sendRequest(req, chan).then(body => {
         const users = [];
         body.data.users.forEach(user => {
             use = {};
@@ -38,18 +45,18 @@ function getBirthdays(token) {
 }
 
 // Récupération de la recherche de groupe
-function searchGroups(token, term) {
+function searchGroups(chan, term) {
     const req = `query {searchAssociations(term: "${term}") {id name code}}`
-    return sendRequest(req, token).then(body => {
+    return sendRequest(req, chan).then(body => {
         if (!body.data) return;
         return body.data.searchAssociations;
     }).catch(err => { console.error(err) })
 }
 
 // Récupération du nom de l'asso ayant l'ID donnée
-function getGroupById(token, id) {
+function getGroupById(chan, id) {
     const req = `query {association(id: ${id}) {name}}`
-    return sendRequest(req, token).then(body => {
+    return sendRequest(req, chan).then(body => {
         if (!body.data) return;
         return body.data.association.name;
     }).catch(err => { console.error(err) })
@@ -110,5 +117,14 @@ function getNewToken(chan) {
         return modifyChan(chan)
     })
 };
+
+// Récupère un nouveau token que si besoin
+function getNewTokenIfNecessary(chan) {
+    if (chan.expiration*1000 < Date.now()) {
+        return getNewToken(chan)
+    } else {
+        return Promise.resolve(chan)
+    }
+}
 
 module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById, getFirstToken, getNewToken };

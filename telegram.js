@@ -45,7 +45,6 @@ bot.onText(/\/reset/, msg => {
     })
 })
 
-
 // Si rien n'a été fait avant, propose un lien de connexion à l'OAuth2 de VR
 bot.onText(/\/connect/, (msg, _) => {
     const chatId = msg.chat.id;
@@ -98,7 +97,7 @@ bot.onText(/\/allbirthdays/, msg => {
     const chatId = msg.chat.id;
     // recherche du token du chan actuel
     getChanByChatId(chatId).then(chan => {
-        return getBirthdays(chan.token)
+        return getBirthdays(chan)
     }).then(users => {
         var msg = '**Joyeux anniversaire** à :\n'
         users.forEach(user => {
@@ -114,7 +113,7 @@ bot.onText(/\/birthdays/, msg => {
     // recherche du token du chan actuel
     getChanByChatId(chatId).then(chan => {
         return Promise.all([
-            getBirthdays(chan.token),
+            getBirthdays(chan),
             getGroups(chatId),
         ])
     }).then(([users, groups]) => {
@@ -134,7 +133,7 @@ bot.onText(/\/search (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const research = match[1];
     getChanByChatId(chatId).then(chan => {
-        return searchGroups(chan.token, research)
+        return searchGroups(chan, research)
     }).then(groups => {
         if (groups.length == 0) return bot.sendMessage(chatId, 'Pas de groupe à ce nom...');
         var resp = 'Voici les différentes associations. Faites /add XXXX pour ajouter les anniversaires de ses membres. ';
@@ -154,7 +153,7 @@ bot.onText(/\/add (.+)/, (msg, match) => {
     getChanByChatId(chatId).then(chan => {
         const id = parseInt(match[1].split(' ')[0]);
         return Promise.all([
-            getGroupById(chan.token, id),
+            getGroupById(chan, id),
             getGroups(chatId),
             id
         ]);
@@ -175,7 +174,7 @@ bot.onText(/\/del (.+)/, (msg, match) => {
     getChanByChatId(chatId).then(chan => {
         const id = parseInt(match[1].split(' ')[0]);
         return Promise.all([
-            getGroupById(chan.token, id),
+            getGroupById(chan, id),
             getGroups(chatId),
             id
         ]);

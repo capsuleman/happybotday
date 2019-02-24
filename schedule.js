@@ -17,7 +17,7 @@ function addSchedule(chan, time, bot) {
         schedules[chan.chatId] = schedule.scheduleJob({ hour: hour, minute: minute }, function () {
             return getNewToken(chan).then(chan => {
                 return Promise.all([
-                    getBirthdays(chan.token),
+                    getBirthdays(chan),
                     getGroups(chan.chatId)
                 ])
             }).then(([users, groups]) => {
