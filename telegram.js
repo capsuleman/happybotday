@@ -1,10 +1,12 @@
+// TELEGRAM.JS : Gestion du bot Telegram
+
 process.env["NTBA_FIX_319"] = 1;
 
 // Modules extérieurs
 var TelegramBot = require('node-telegram-bot-api');
 
 // Modules propres
-var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, removeGroup, getGroups } = require('./connection-db');
+var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, removeGroup, removeAllGroups, getGroups } = require('./connection-db');
 var { getBirthdays, searchGroups, getGroupById } = require('./requests');
 var { schedules, addSchedule, deleteSchedule } = require('./schedule');
 
@@ -20,7 +22,7 @@ var bot = new TelegramBot(config.telegram.token, { polling: true });
 bot.onText(/\/start/, msg => {
     const chatId = msg.chat.id;
     return getChanByChatId(chatId).then(chan => {
-        // /start déjà fait...
+        // /start déjà fait
         if (chan) return bot.sendMessage(chatId, 'Vous avez déjà fait lancé le bot sur cette conversation. Pour tout réinitialiser, faites /reset.')
         return createChan(chatId).then(_ => {
             const resp = 'Holà, je suis le Happy Botday, je suis là pour vous souhaiter vous rapeller les anniversaires de vos potes !\nPour commencer, il faut que quelqu\'un s\'identifie : /connect';
@@ -36,6 +38,7 @@ bot.onText(/\/reset/, msg => {
     deleteSchedule(chatId);
     return Promise.all([
         deleteChanByChatId(chatId),
+        removeAllGroups(chatId)
     ]).then(_ => {
         const resp = 'Toutes vos paramètres ont été supprimés. Pour recommencer à m\'utiliser, faites /start.';
         bot.sendMessage(chatId, resp);

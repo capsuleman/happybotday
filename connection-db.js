@@ -1,5 +1,12 @@
+// CONNECTION-DB : Module de connexion à la base de données et fonctions pour modifier groupes et chans
+
+// Modules extérieurs
 var mysql = require('promise-mysql');
 
+// Création de variables
+var schedules = {};
+
+// Configurations
 const config = require('./config');
 
 
@@ -100,6 +107,11 @@ function removeGroup(chatId, groupId) {
     DELETE FROM groups WHERE chatId = ${chatId} AND grp = ${groupId}`)
 }
 
+function removeAllGroups(chatId) {
+    return query(`
+    DELETE FROM groups WHERE chatId = ${chatId}`)
+}
+
 function getGroups(chatId) {
     return query(`
     SELECT grp
@@ -119,4 +131,4 @@ function getSchedules() {
 }
 
 
-module.exports = { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, getChanByState, addGroup, removeGroup, getGroups, getSchedules };
+module.exports = { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, getChanByState, addGroup, removeGroup, removeAllGroups, getGroups, getSchedules };
