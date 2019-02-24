@@ -62,6 +62,19 @@ function getGroupById(chan, id) {
     }).catch(err => { console.error(err) })
 }
 
+
+function getMe(chan) {
+    return getNewTokenIfNecessary(chan).then(chan => {
+        const options = {
+            headers: { 'Authorization': `Bearer ${chan.token}` },
+            json: true
+        }
+    
+        return rp('https://auth.viarezo.fr/api/user/show/me', options)    
+    })
+}
+
+
 // Récupération d'un token
 function getFirstToken(code, state) {
 
@@ -127,4 +140,4 @@ function getNewTokenIfNecessary(chan) {
     }
 }
 
-module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById, getFirstToken, getNewToken };
+module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById, getMe, getFirstToken, getNewToken };

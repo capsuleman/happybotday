@@ -3,9 +3,6 @@
 // Modules extérieurs
 var mysql = require('promise-mysql');
 
-// Création de variables
-var schedules = {};
-
 // Configurations
 const config = require('./config');
 

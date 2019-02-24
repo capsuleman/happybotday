@@ -1,3 +1,5 @@
+// WEBSITE.JS : Gestion du site web
+
 // Modules extérieurs
 var app = require('express')();
 

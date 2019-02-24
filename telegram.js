@@ -7,7 +7,7 @@ var TelegramBot = require('node-telegram-bot-api');
 
 // Modules propres
 var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, removeGroup, removeAllGroups, getGroups } = require('./connection-db');
-var { getBirthdays, searchGroups, getGroupById } = require('./requests');
+var { getBirthdays, searchGroups, getGroupById, getMe } = require('./requests');
 var { schedules, addSchedule, deleteSchedule } = require('./schedule');
 
 // Configurations
@@ -207,7 +207,7 @@ bot.onText(/\/schedule (.+)/, (msg, match) => {
 bot.onText(/\/unschedule/, msg => {
     const chatId = msg.chat.id;
     getChanByChatId(chatId).then(chan => {
-        if (!chan) return bot.sendMessage(chatId, 'Pas de compte enregistré, faites /start pour commencer');
+        if (!chan) return bot.sendMessage(chatId, 'Pas de compte enregistré, faites /start pour commencer.');
         if (chan.schedule == '') return bot.sendMessage(chatId, 'Pas de rappel défini...');
 
         deleteSchedule(chatId)
@@ -215,6 +215,49 @@ bot.onText(/\/unschedule/, msg => {
         return modifyChan(chan)
     }).then(_ => {
         bot.sendMessage(chatId, 'Votre rappel a été supprimé.')
+    })
+})
+
+// Renvoi les infos du chan
+bot.onText(/\/info/, msg => {
+    const chatId = msg.chat.id;
+    // il faut chercher le gars sur l'auth.viarezo.fr/me
+    getChanByChatId(chatId).then(chan => {
+        // gestion des cas où l'utilisateur n'est pas totalement connecté
+        if (!chan) return bot.sendMessage(chatId, 'Pas de compte enregistré, faites /start pour commencer.');
+        if (chan.username.length === 0 && chan.token.length === 0) return bot.sendMessage(chatId, 'Pas de demande de connexion faite, tapez /connect pour en envoyer une.');
+        if (chan.token.length === 0) return bot.sendMessage(chatId, `Une demande de connexion a été faite par @${chan.username} mais n'a toujours pas été acceptée.\n${config.website.protocol}://${config.website.hostname}/?state=${chan.state}`);
+        return Promise.all([
+            getMe(chan),
+            getGroups(chan.chatId),
+            getGroups(chan.chatId).then(groups => {
+                return Promise.all(groups.map(group => getGroupById(chan, group)))
+            })
+        ]).then(([me, groups, names]) => {
+            // affiche qui s'est connecté
+            var msg = `${me.firstName} ${me.lastName} (@${chan.username}) s'est connecté à l'OAuth.\n\n`;
+
+            // affiche le moment du rappel journalier
+            if (chan.schedule.length !== 0) {
+                msg += `Les rappels sont prévus tous les jours à ${chan.schedule}.\n`;
+                msg += 'Vous pouvez annuler ces rappels via /unschedule\n\n'
+            } else {
+                msg += `Vous n'avez pas de rappel journalier.\n`
+                msg += `Vous pouvez faire /schedule hh:mm pour en ajouter un.\n\n`
+            }
+
+            // affiche la liste des associations à souhait
+            if (groups.length === 0) {
+                msg += 'La liste des associations / groupes est vide.\n';
+                msg += 'Vous pouvez en chercher via /search sonNom, puis faire un /add sonID\n'
+            } else {
+                msg += `Les personnes faisant parti de ces associations / groupes auront leur anniversaire rapellé :\n`;
+                for (i = 0; i < groups.length; i++) {
+                    msg += ` • ${names[i]} (id : ${groups[i]})\n`
+                }
+            }
+            bot.sendMessage(chatId, msg);
+        })
     })
 })
 

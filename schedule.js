@@ -1,3 +1,5 @@
+// SCHEDULE.JS : Module permettant de créer des rappels d'anniversaires
+
 // Modules extérieurs
 var schedule = require('node-schedule');
 

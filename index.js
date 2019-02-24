@@ -1,3 +1,5 @@
+// INDEX.JS : Script principal pour lancer le serveur
+
 // Modules propres
 var bot = require('./telegram');
 require('./website');
