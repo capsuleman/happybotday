@@ -28,7 +28,7 @@ function query(req) {
 
 Promise.all([
     query(`CREATE TABLE IF NOT EXISTS channel(
-    chatId INT PRIMARY KEY NOT NULL,
+    chatId BIGINT PRIMARY KEY NOT NULL,
     username TEXT,
     state TEXT,
     token TEXT,
@@ -38,7 +38,7 @@ Promise.all([
 )`),
 
     query(`CREATE TABLE IF NOT EXISTS groups(
-    chatId INT NOT NULL,
+    chatId BIGINT NOT NULL,
     grp INT,
     primary key (chatId, grp)
 )`)
@@ -71,7 +71,7 @@ function deleteChanByChatId(chatId) {
 
 function modifyChan(data) {
     return query(`
-        UPDATE channel
+            UPDATE channel
         SET username = "${data.username}",
             state = "${data.state}",
             token = "${data.token}",
