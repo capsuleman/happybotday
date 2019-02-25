@@ -126,7 +126,7 @@ function getNewToken(chan) {
         rep = JSON.parse(body);
         chan.token = rep.access_token;
         chan.refresh = rep.refresh_token;
-        chan.expiration = rep.expires_at * 1000;
+        chan.expiration = rep.expires_at;
         return modifyChan(chan)
     })
 };
