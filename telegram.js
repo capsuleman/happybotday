@@ -6,7 +6,7 @@ process.env["NTBA_FIX_319"] = 1;
 var TelegramBot = require('node-telegram-bot-api');
 
 // Modules propres
-var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, removeGroup, removeAllGroups, getGroups } = require('./connection-db');
+var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, removeGroup, removeAllGroups, getGroups } = require('./mysql');
 var { getBirthdays, searchGroups, getGroupById, getMe } = require('./requests');
 var { schedules, addSchedule, deleteSchedule } = require('./schedule');
 

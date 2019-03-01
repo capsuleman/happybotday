@@ -4,7 +4,7 @@
 const rp = require('request-promise');
 
 // Modules propres
-var { modifyChan, getChanByState } = require('./connection-db');
+var { modifyChan, getChanByState } = require('./mysql');
 
 // Configurations
 const config = require('./config');

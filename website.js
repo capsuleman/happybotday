@@ -5,7 +5,7 @@ var app = require('express')();
 
 // Modules propres
 var bot = require('./telegram');
-var { getChanByState } = require('./connection-db');
+var { getChanByState } = require('./mysql');
 var { getFirstToken } = require('./requests');
 
 // Configurations

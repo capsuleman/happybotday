@@ -1,4 +1,4 @@
-// CONNECTION-DB : Module de connexion à la base de données et fonctions pour modifier groupes et chans
+// MYSQL.JS : Module de connexion à la base de données et fonctions pour modifier groupes et chans
 
 // Modules extérieurs
 var mysql = require('promise-mysql');
