@@ -4,7 +4,7 @@
 var schedule = require('node-schedule');
 
 // Modules propres
-var { modifyChan, getGroups } = require('./mysql');
+var { modifyChan, getCompos } = require('./mysql');
 var { getBirthdays, getNewToken } = require('./requests');
 
 // Création de variables
@@ -20,7 +20,7 @@ function addSchedule(chan, time, bot) {
             return getNewToken(chan).then(chan => {
                 return Promise.all([
                     getBirthdays(chan),
-                    getGroups(chan.chatId)
+                    getCompos(chan.chatId)
                 ])
             }).then(([users, groups]) => {
                 // récupère que les personnes du jour qui font partie des groupes ciblés

@@ -21,8 +21,8 @@ async function sendRequest(req, chan) {
             json: true
         }
         const url = 'https://gateway.linkcs.fr/v1/graphql';
-    
-        return rp(`${url}?query=${req}`, options)    
+
+        return rp(`${url}?query=${req}`, options)
     })
 }
 
@@ -46,7 +46,7 @@ function getBirthdays(chan) {
 
 // Récupération de la recherche de groupe
 function searchGroups(chan, term) {
-    const req = `query {searchAssociations(term: "${term}") {id name code}}`
+    const req = `query {searchAssociations(term: "${term}") {name code compositions { id label beginningDate}}}`
     return sendRequest(req, chan).then(body => {
         if (!body.data) return;
         return body.data.searchAssociations;
@@ -62,6 +62,24 @@ function getGroupById(chan, id) {
     }).catch(err => { console.error(err) })
 }
 
+function getCompoGroupById(chan, id) {
+    const req = `query {composition(id: ${id}) {id label beginningDate association {id name}}}`
+    return sendRequest(req, chan).then(body => {
+        if (!body.data) return;
+        return {
+            compo: {
+                name: body.data.composition.label,
+                id: body.data.composition.id,
+                beginningDate: body.data.composition.beginningDate
+            },
+            group: {
+                name: body.data.composition.association.name,
+                id: body.data.composition.association.id
+            }
+        };
+    }).catch(err => { console.error(err) })
+}
+
 
 function getMe(chan) {
     return getNewTokenIfNecessary(chan).then(chan => {
@@ -69,8 +87,8 @@ function getMe(chan) {
             headers: { 'Authorization': `Bearer ${chan.token}` },
             json: true
         }
-    
-        return rp('https://auth.viarezo.fr/api/user/show/me', options)    
+
+        return rp('https://auth.viarezo.fr/api/user/show/me', options)
     })
 }
 
@@ -133,11 +151,11 @@ function getNewToken(chan) {
 
 // Récupère un nouveau token que si besoin
 function getNewTokenIfNecessary(chan) {
-    if (chan.expiration*1000 < Date.now()) {
+    if (chan.expiration * 1000 < Date.now()) {
         return getNewToken(chan)
     } else {
         return Promise.resolve(chan)
     }
 }
 
-module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById, getMe, getFirstToken, getNewToken };
+module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById, getCompoGroupById, getMe, getFirstToken, getNewToken };

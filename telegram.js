@@ -6,8 +6,8 @@ process.env["NTBA_FIX_319"] = 1;
 var TelegramBot = require('node-telegram-bot-api');
 
 // Modules propres
-var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, removeGroup, removeAllGroups, getGroups } = require('./mysql');
-var { getBirthdays, searchGroups, getGroupById, getMe } = require('./requests');
+var { getChanByChatId, createChan, deleteChanByChatId, modifyChan, addGroup, removeGroup, removeAllGroups, getCompos } = require('./mysql');
+var { getBirthdays, searchGroups, getCompoGroupById, getMe } = require('./requests');
 var { schedules, addSchedule, deleteSchedule } = require('./schedule');
 
 // Configurations
@@ -115,7 +115,7 @@ bot.onText(/\/birthdays/, msg => {
     getChanByChatId(chatId).then(chan => {
         return Promise.all([
             getBirthdays(chan),
-            getGroups(chatId),
+            getCompos(chatId),
         ])
     }).then(([users, groups]) => {
         // récupère que les personnes du jour qui font partie des groupes ciblés
@@ -142,7 +142,15 @@ bot.onText(new RegExp(`/search (.+)|/search@${config.telegram.name} (.+)`), (msg
         if (groups.length == 20) resp += 'La recherche est limitée à 20 choix.'
         resp += '\n\n'
         groups.forEach(group => {
-            resp += `<a href="https://linkcs.fr/association/${group.code}">${group.name}</a> (id : ${group.id})\n`
+            resp += `<a href="https://linkcs.fr/association/${group.code}">${group.name}</a>\n`;
+            group.compositions.sort((compo1, compo2) => Date.parse(compo1.beginningDate) - Date.parse(compo2.beginningDate));
+            group.compositions.forEach((compo, index, array) => {
+                if (index !== array.length - 1) {
+                    resp += `├ ${compo.label} (id : ${compo.id})\n`
+                } else {
+                    resp += `└ ${compo.label} (id : ${compo.id})\n`
+                }
+            })
         })
         bot.sendMessage(chatId, resp, { parse_mode: 'HTML' });
     });
@@ -154,18 +162,18 @@ bot.onText(new RegExp(`/add (.+)|/add@${config.telegram.name} (.+)`), (msg, matc
     getChanByChatId(chatId).then(chan => {
         const id = parseInt(match[0].split(' ')[1]);
         return Promise.all([
-            getGroupById(chan, id),
-            getGroups(chatId),
+            getCompoGroupById(chan, id),
+            getCompos(chatId),
             id
         ]);
-    }).then(([group, groups, id]) => {
+    }).then(([cg, groups, id]) => {
         // si pas de groupe trouvé
-        if (!group) return bot.sendMessage(chatId, 'Pas de groupe trouvé ayant cette ID');
+        if (!cg) return bot.sendMessage(chatId, 'Pas de composition trouvé ayant cette ID');
         // si le groupe y est déjà
-        if (groups.indexOf(id) !== -1) return bot.sendMessage(chatId, 'Ce groupe est déjà est dans votre liste d\'anniversaire.');
+        if (groups.indexOf(id) !== -1) return bot.sendMessage(chatId, 'Cette composition est déjà est dans votre liste d\'anniversaire.');
         // sinon on le rajoute
         return addGroup(chatId, id).then(_ => {
-            bot.sendMessage(chatId, `Ajout du groupe \`${group}\` à la liste des anniversaires.`, { parse_mode: 'Markdown' });
+            bot.sendMessage(chatId, `Ajout de la composition \`${cg.compo.name}\` du groupe \`${cg.group.name}\` à la liste des anniversaires.`, { parse_mode: 'Markdown' });
         })
     })
 })
@@ -175,18 +183,18 @@ bot.onText(new RegExp(`/del (.+)|/del@${config.telegram.name} (.+)`), (msg, matc
     getChanByChatId(chatId).then(chan => {
         const id = parseInt(match[0].split(' ')[1]);
         return Promise.all([
-            getGroupById(chan, id),
-            getGroups(chatId),
+            getCompoGroupById(chan, id),
+            getCompos(chatId),
             id
         ]);
-    }).then(([group, groups, id]) => {
+    }).then(([cg, groups, id]) => {
         // si pas de groupe trouvé
-        if (!group) return bot.sendMessage(chatId, 'Pas de groupe trouvé ayant cette ID');
+        if (!cg) return bot.sendMessage(chatId, 'Pas de composition trouvé ayant cette ID');
         // si le groupe y est déjà
-        if (groups.indexOf(id) === -1) return bot.sendMessage(chatId, 'Ce groupe n\'est pas dans votre liste d\'anniversaire.');
+        if (groups.indexOf(id) === -1) return bot.sendMessage(chatId, 'Cette composition n\'est pas dans votre liste d\'anniversaire.');
         // sinon on le rajoute
         return removeGroup(chatId, id).then(_ => {
-            bot.sendMessage(chatId, `Retrait du groupe \`${group}\` de la liste des anniversaires.`, { parse_mode: 'Markdown' });
+            bot.sendMessage(chatId, `Retrait de la composition \`${cg.compo.name}\` du groupe \`${cg.group.name}\` à la liste des anniversaires.`, { parse_mode: 'Markdown' });
         })
     })
 })
@@ -230,11 +238,19 @@ bot.onText(/\/info/, msg => {
         if (chan.token.length === 0) return bot.sendMessage(chatId, `Une demande de connexion a été faite par @${chan.username} mais n'a toujours pas été acceptée.\n${config.website.protocol}://${config.website.hostname}/?state=${chan.state}`);
         return Promise.all([
             getMe(chan),
-            getGroups(chan.chatId),
-            getGroups(chan.chatId).then(groups => {
-                return Promise.all(groups.map(group => getGroupById(chan, group)))
+            getCompos(chan.chatId),
+            getCompos(chan.chatId).then(groups => {
+                return Promise.all(groups.map(group => getCompoGroupById(chan, group)))
             })
-        ]).then(([me, groups, names]) => {
+        ]).then(([me, groups, cgs]) => {
+            groups = {}
+            cgs.forEach(cg => {
+                if (!groups[cg.group.id]) {
+                    groups[cg.group.id] = { name: cg.group.name, compo: [] };
+                }
+                groups[cg.group.id].compo.push(cg.compo)
+            })
+
             // affiche qui s'est connecté
             var msg = `${me.firstName} ${me.lastName} (@${chan.username}) s'est connecté à l'OAuth.\n\n`;
 
@@ -249,13 +265,22 @@ bot.onText(/\/info/, msg => {
 
             // affiche la liste des associations à souhait
             if (groups.length === 0) {
-                msg += 'La liste des associations / groupes est vide.\n';
+                msg += 'La liste des compositions est vide.\n';
                 msg += 'Vous pouvez en chercher via /search sonNom, puis faire un /add sonID\n'
             } else {
-                msg += `Les personnes faisant parti de ces associations / groupes auront leur anniversaire rapellé :\n`;
-                for (i = 0; i < groups.length; i++) {
-                    msg += ` • ${names[i]} (id : ${groups[i]})\n`
-                }
+                msg += `Les personnes faisant parti de ces compositions auront leur anniversaire rapellé :\n`;
+                Object.keys(groups).forEach(key => {
+                    msg += `${groups[key].name}\n`
+                    groups[key].compo.sort((compo1, compo2) => Date.parse(compo1.beginningDate) - Date.parse(compo2.beginningDate));
+                    groups[key].compo.forEach((compo, index, array) => {
+                        if (index !== array.length - 1) {
+                            msg += `├ ${compo.name} (id : ${compo.id})\n`
+                        } else {
+                            msg += `└ ${compo.name} (id : ${compo.id})\n`
+                        }
+                    })
+
+                });
             }
             bot.sendMessage(chatId, msg);
         })

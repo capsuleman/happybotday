@@ -109,7 +109,7 @@ function removeAllGroups(chatId) {
     DELETE FROM groups WHERE chatId = ${chatId}`)
 }
 
-function getGroups(chatId) {
+function getCompos(chatId) {
     return query(`
     SELECT grp
     FROM groups
@@ -128,4 +128,4 @@ function getSchedules() {
 }
 
 
-module.exports = { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, getChanByState, addGroup, removeGroup, removeAllGroups, getGroups, getSchedules };
+module.exports = { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, getChanByState, addGroup, removeGroup, removeAllGroups, getCompos, getSchedules };
