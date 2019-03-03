@@ -28,7 +28,7 @@ async function sendRequest(req, chan) {
 
 // Récupération de tous les personnes et leurs assos ayant leur anniversaire
 function getBirthdays(chan) {
-    const req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {firstName  lastName  roles {sector {composition {association {id}}}}}'
+    const req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {firstName  lastName  roles {sector {composition {id}}}}'
     return sendRequest(req, chan).then(body => {
         const users = [];
         body.data.users.forEach(user => {
@@ -36,7 +36,7 @@ function getBirthdays(chan) {
             use.name = `${user.firstName} ${user.lastName}`;
             use.asso = [];
             user.roles.forEach(role => {
-                use.asso.push(role.sector.composition.association.id);
+                use.asso.push(role.sector.composition.id);
             })
             users.push(use);
         });
