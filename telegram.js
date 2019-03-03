@@ -52,7 +52,7 @@ bot.onText(/\/connect/, (msg, _) => {
         if (!chan) return bot.sendMessage(chatId, 'Avant de vous authentifier, faites /start.');
         // /connect déjà fait, renvoie vers le lien précédent
         if (chan.state.length !== 0) {
-            return bot.sendMessage(chatId, `@${chan.username} a déjà fait une demande. Vous pouvez annuler la demande via /cancel ou @${chan.username} peut se connecter depuis ce <a href="${config.website.protocol}://${config.website.hostname}/?state=${chan.state}">test</a>`, { parse_mode : 'HTML'})
+            return bot.sendMessage(chatId, `@${chan.username} a déjà fait une demande. Vous pouvez annuler la demande via /cancel ou @${chan.username} peut se connecter depuis ce <a href="${config.website.protocol}://${config.website.hostname}/?state=${chan.state}">test</a>`, { parse_mode: 'HTML' })
         }
         // authentification déjà faite
         if (chan.token.length !== 0) return bot.sendMessage(chatId, `Une connexion a déjà été faite par @${chan.username}. Pour la réinitialiser, faites /disconnect`);
@@ -130,9 +130,9 @@ bot.onText(/\/birthdays/, msg => {
 });
 
 // recherche des groupes et renvoie le résultat avec leurs ID pour les rajouter
-bot.onText(/\/search (.+)/, (msg, match) => {
+bot.onText(new RegExp(`/search (.+)|/search@${config.telegram.name} (.+)`), (msg, match) => {
     const chatId = msg.chat.id;
-    const research = match[1];
+    const research = match[0].split(' ')[1];
     getChanByChatId(chatId).then(chan => {
         return searchGroups(chan, research)
     }).then(groups => {
@@ -149,10 +149,10 @@ bot.onText(/\/search (.+)/, (msg, match) => {
 })
 
 // Ajout d'un groupe dans la liste des groupes
-bot.onText(/\/add (.+)/, (msg, match) => {
+bot.onText(new RegExp(`/add (.+)|/add@${config.telegram.name} (.+)`), (msg, match) => {
     const chatId = msg.chat.id;
     getChanByChatId(chatId).then(chan => {
-        const id = parseInt(match[1].split(' ')[0]);
+        const id = parseInt(match[0].split(' ')[1]);
         return Promise.all([
             getGroupById(chan, id),
             getGroups(chatId),
@@ -170,10 +170,10 @@ bot.onText(/\/add (.+)/, (msg, match) => {
     })
 })
 
-bot.onText(/\/del (.+)/, (msg, match) => {
+bot.onText(new RegExp(`/del (.+)|/del@${config.telegram.name} (.+)`), (msg, match) => {
     const chatId = msg.chat.id;
     getChanByChatId(chatId).then(chan => {
-        const id = parseInt(match[1].split(' ')[0]);
+        const id = parseInt(match[0].split(' ')[1]);
         return Promise.all([
             getGroupById(chan, id),
             getGroups(chatId),
@@ -192,9 +192,9 @@ bot.onText(/\/del (.+)/, (msg, match) => {
 })
 
 // Ajout d'un rappel
-bot.onText(/\/schedule (.+)/, (msg, match) => {
+bot.onText(new RegExp(`/schedule (.+)|/schedule@${config.telegram.name} (.+)`), (msg, match) => {
     const chatId = msg.chat.id;
-    const time = match[1];
+    const time = match[0].split(' ')[1];
     if (!RegExp('^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$').test(time)) return bot.sendMessage(chatId, 'Le temps entré n\'est pas au format hh:mm');
     getChanByChatId(chatId).then(chan => {
         if (!chan) return bot.sendMessage(chatId, 'Pas de compte enregistré, faites /start pour commencer');
