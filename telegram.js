@@ -17,7 +17,6 @@ const config = require('./config');
 var bot = new TelegramBot(config.telegram.token, { polling: true });
 
 
-
 // A la connexion, création d'un document Channel dans MongoDB
 bot.onText(/\/start/, msg => {
     const chatId = msg.chat.id;
@@ -52,15 +51,17 @@ bot.onText(/\/connect/, (msg, _) => {
         // start pas encore fait
         if (!chan) return bot.sendMessage(chatId, 'Avant de vous authentifier, faites /start.');
         // /connect déjà fait, renvoie vers le lien précédent
-        if (chan.state.length !== 0) return bot.sendMessage(chatId, `@${chan.username} a déjà fait une demande. Vous pouvez annuler la demande via /cancel ou @${chan.username} peut se connecter depuis ce lien :\n${config.website.protocol}://${config.website.hostname}/?state=${chan.state}`)
+        if (chan.state.length !== 0) {
+            return bot.sendMessage(chatId, `@${chan.username} a déjà fait une demande. Vous pouvez annuler la demande via /cancel ou @${chan.username} peut se connecter depuis ce <a href="${config.website.protocol}://${config.website.hostname}/?state=${chan.state}">test</a>`, { parse_mode : 'HTML'})
+        }
         // authentification déjà faite
         if (chan.token.length !== 0) return bot.sendMessage(chatId, `Une connexion a déjà été faite par @${chan.username}. Pour la réinitialiser, faites /disconnect`);
         // dans le reste des cas, création d'un lien pour l'authentification et enregistrement dans l'objet pour être sur
         chan.state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         chan.username = msg.from.username;
         modifyChan(chan).then(chan => {
-            const resp = `Pour vous identifier, connectez-vous via l\'OAuth2 de ViaRézo depuis ce lien :\n${config.website.protocol}://${config.website.hostname}/?state=${chan.state}`;
-            return bot.sendMessage(chatId, resp);
+            const resp = `Pour vous identifier, connectez-vous via l\'OAuth2 de ViaRézo depuis ce <a href="${config.website.protocol}://${config.website.hostname}/?state=${chan.state}">lien</a>\n`;
+            return bot.sendMessage(chatId, resp, { parse_mode: 'HTML' });
         })
     })
 });
@@ -141,9 +142,9 @@ bot.onText(/\/search (.+)/, (msg, match) => {
         if (groups.length == 20) resp += 'La recherche est limitée à 20 choix.'
         resp += '\n\n'
         groups.forEach(group => {
-            resp += `${group.name} : \`/add ${group.id}\`\nhttps://linkcs.fr/association/${group.code} \n\n`
+            resp += `<a href="https://linkcs.fr/association/${group.code}">${group.name}</a> (id : ${group.id})\n`
         })
-        bot.sendMessage(chatId, resp, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, resp, { parse_mode: 'HTML' });
     });
 })
 
