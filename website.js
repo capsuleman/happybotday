@@ -12,10 +12,14 @@ var { getFirstToken } = require('./requests');
 const config = require('./config');
 
 
+
+// Lancement du site
 app.listen(config.website.port, '127.0.0.1', () => {
     console.log(`[express] Website is up and accessible on ${config.website.protocol}://${config.website.hostname}/`);
 })
 
+
+// Page de base, si argument 
 app.get('/', function (req, res) {
 
     // GET / : renvoie la page de base
@@ -49,5 +53,8 @@ return getFirstToken(req.query.code, req.query.state).then(chan => {
     })
 })
 
+app.get('/namebot', function (req, res) {
+    return res.send(config.telegram.name);
+})
 
 module.exports = app;
