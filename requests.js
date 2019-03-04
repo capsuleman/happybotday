@@ -4,7 +4,7 @@
 const rp = require('request-promise');
 
 // Modules propres
-var { modifyChan, getChanByState } = require('./mysql');
+var { modifyChan, getChanByState, addUser } = require('./mysql');
 
 // Configurations
 const config = require('./config');
@@ -119,6 +119,15 @@ function getFirstToken(code, state) {
         chan.refresh = rep.refresh_token;
         chan.expiration = rep.expires_at;
         chan.state = '';
+        if (chan.chatId > 0) {
+            getMe(chan).then(me => {
+                addUser({
+                    userid: me.id,
+                    name: `${me.firstName} ${me.lastName}`,
+                    username: chan.username
+                })
+            })
+        }
         return modifyChan(chan)
     })
 }

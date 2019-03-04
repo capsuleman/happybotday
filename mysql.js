@@ -36,11 +36,15 @@ Promise.all([
     expiration TEXT,
     schedule TEXT
 )`),
-
     query(`CREATE TABLE IF NOT EXISTS groups(
     chatId BIGINT NOT NULL,
     grp INT,
     primary key (chatId, grp)
+)`),
+    query(`CREATE TABLE IF NOT EXISTS users(
+    userid INT PRIMARY KEY NOT NULL,
+    name TEXT,
+    username TEXT
 )`)
 ]).then(_ => {
 
@@ -71,14 +75,14 @@ function deleteChanByChatId(chatId) {
 
 function modifyChan(data) {
     return query(`
-            UPDATE channel
-        SET username = "${data.username}",
-            state = "${data.state}",
-            token = "${data.token}",
-            refresh = "${data.refresh}",
-            expiration = "${data.expiration}",
-            schedule = "${data.schedule}"
-        WHERE chatId = ${data.chatId}
+    UPDATE channel
+    SET username = "${data.username}",
+        state = "${data.state}",
+        token = "${data.token}",
+        refresh = "${data.refresh}",
+        expiration = "${data.expiration}",
+        schedule = "${data.schedule}"
+    WHERE chatId = ${data.chatId}
     `).then(_ => {
         return getChanByChatId(data.chatId)
     })
@@ -127,5 +131,39 @@ function getSchedules() {
     `)
 }
 
+function addUser(data) {
+    return query(`
+    SELECT *
+    FROM users
+    WHERE userid=${data.userid}
+    `).then(rep => {
+        if (rep.length === 0) {
+            return query(`
+            INSERT INTO users
+            VALUES(${data.userid}, "${data.name}", "${data.username}")
+            `)
+        } else {
+            return query(`
+            UPDATE users
+            SET username="${data.username}"
+            WHERE userid=${data.userid}
+            `)
+        }
+    })
+}
 
-module.exports = { query, getChanByChatId, createChan, deleteChanByChatId, modifyChan, getChanByState, addGroup, removeGroup, removeAllGroups, getCompos, getSchedules };
+
+module.exports = {
+    query,
+    getChanByChatId,
+    createChan,
+    deleteChanByChatId,
+    modifyChan,
+    getChanByState,
+    addGroup,
+    removeGroup,
+    removeAllGroups,
+    getCompos,
+    getSchedules,
+    addUser
+};
