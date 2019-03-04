@@ -100,11 +100,20 @@ bot.onText(/\/allbirthdays/, msg => {
     getChanByChatId(chatId).then(chan => {
         return getBirthdays(chan)
     }).then(users => {
-        var msg = '**Joyeux anniversaire** à :\n'
-        users.forEach(user => {
-            msg += `${user.name}\n`
-        });
-        bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
+        if (chatId > 0) { // chan privé
+            var msg = 'N\'oubliez pas les <b>anniversaires</b> de :\n'
+        } else { // chan à plusieurs
+            var msg = '<b>Joyeux anniversaire</b> à :\n'
+        }
+        users.sort((use1, use2) => use1.promo - use2.promo);
+        users.forEach((user, index, array) => {
+            if (index !== array.length - 1) {
+                msg += `├ <a href = "https://linkcs.fr/user/${user.login}">${user.name}</a>\n`
+            } else {
+                msg += `└ <a href = "https://linkcs.fr/user/${user.login}">${user.name}</a>\n`
+            }
+        })
+        return bot.sendMessage(chatId, msg, { parse_mode: 'HTML' });
     })
 });
 
@@ -115,17 +124,26 @@ bot.onText(/\/birthdays/, msg => {
     getChanByChatId(chatId).then(chan => {
         return Promise.all([
             getBirthdays(chan),
-            getCompos(chatId),
+            getCompos(chatId)
         ])
     }).then(([users, groups]) => {
         // récupère que les personnes du jour qui font partie des groupes ciblés
         const newUsers = users.filter(user => user.asso.some(asso => groups.indexOf(asso) !== -1));
         if (newUsers.length === 0) return bot.sendMessage(chatId, 'Pas d\'anniversaire à souhaiter aujourd\'hui.')
-        var msg = '**Joyeux anniversaire** à :\n'
-        newUsers.forEach(user => {
-            msg += `${user.name}\n`
-        });
-        return bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
+        if (chatId > 0) { // chan privé
+            var msg = 'N\'oubliez pas les <b>anniversaires</b> de :\n'
+        } else { // chan à plusieurs
+            var msg = '<b>Joyeux anniversaire</b> à :\n'
+        }
+        newUsers.sort((use1, use2) => use1.promo - use2.promo);
+        newUsers.forEach((user, index, array) => {
+            if (index !== array.length - 1) {
+                msg += `├ <a href = "https://linkcs.fr/user/${user.login}">${user.name}</a>\n`
+            } else {
+                msg += `└ <a href = "https://linkcs.fr/user/${user.login}">${user.name}</a>\n`
+            }
+        })
+        return bot.sendMessage(chatId, msg, { parse_mode: 'HTML' });
     })
 });
 
@@ -137,7 +155,9 @@ bot.onText(new RegExp(`/search (.+)|/search@${config.telegram.name} (.+)`), (msg
         return searchGroups(chan, research)
     }).then(groups => {
         if (groups.length == 0) return bot.sendMessage(chatId, 'Pas de groupe à ce nom...');
-        var resp = 'Voici les différentes associations. Faites /add XXXX pour ajouter les anniversaires de ses membres. ';
+        const aleatgroup = groups[Math.floor(Math.random() * groups.length)];
+        const aleatcompo = aleatgroup.compositions[Math.floor(Math.random() * aleatgroup.compositions.length)];
+        var resp = `Voici les différentes associations et leurs compositions. Pour ajouter les membres d'une composition à votre liste d'anniversaire, faites par exemple /add ${aleatcompo.id} pour ajouter les membres de la composition ${aleatcompo.label} de l'asso ${aleatgroup.name}. `;
         // LinkCS limite à 20 résultats
         if (groups.length == 20) resp += 'La recherche est limitée à 20 choix.'
         resp += '\n\n'
@@ -238,11 +258,10 @@ bot.onText(/\/info/, msg => {
         if (chan.token.length === 0) return bot.sendMessage(chatId, `Une demande de connexion a été faite par @${chan.username} mais n'a toujours pas été acceptée.\n${config.website.protocol}://${config.website.hostname}/?state=${chan.state}`);
         return Promise.all([
             getMe(chan),
-            getCompos(chan.chatId),
             getCompos(chan.chatId).then(groups => {
                 return Promise.all(groups.map(group => getCompoGroupById(chan, group)))
             })
-        ]).then(([me, groups, cgs]) => {
+        ]).then(([me, cgs]) => {
             groups = {}
             cgs.forEach(cg => {
                 if (!groups[cg.group.id]) {
@@ -264,7 +283,7 @@ bot.onText(/\/info/, msg => {
             }
 
             // affiche la liste des associations à souhait
-            if (groups.length === 0) {
+            if (cgs.length === 0) {
                 msg += 'La liste des compositions est vide.\n';
                 msg += 'Vous pouvez en chercher via /search sonNom, puis faire un /add sonID\n'
             } else {

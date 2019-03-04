@@ -28,12 +28,14 @@ async function sendRequest(req, chan) {
 
 // Récupération de tous les personnes et leurs assos ayant leur anniversaire
 function getBirthdays(chan) {
-    const req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {firstName  lastName  roles {sector {composition {id}}}}'
+    const req = 'query getUsersBirthday {users: usersBirthday {    ...userData}}fragment userData on User {firstName lastName login promotion roles {sector {composition {id}}}}'
     return sendRequest(req, chan).then(body => {
         const users = [];
         body.data.users.forEach(user => {
             use = {};
             use.name = `${user.firstName} ${user.lastName}`;
+            use.login = user.login;
+            use.promo = user.promotion;
             use.asso = [];
             user.roles.forEach(role => {
                 use.asso.push(role.sector.composition.id);

@@ -26,11 +26,19 @@ function addSchedule(chan, time, bot) {
                 // récupère que les personnes du jour qui font partie des groupes ciblés
                 const newUsers = users.filter(user => user.asso.some(asso => groups.indexOf(asso) !== -1));
                 if (newUsers.length === 0) return
-                var msg = '**Joyeux anniversaire** à :\n'
-                newUsers.forEach(user => {
-                    msg += `${user.name}\n`
-                });
-                return bot.sendMessage(chan.chatId, msg, { parse_mode: 'Markdown' });
+                if (chan.chatId > 0) { // chan privé
+                    var msg = 'N\'oubliez pas les <b>anniversaires</b> de :\n'
+                } else { // chan à plusieurs
+                    var msg = '<b>Joyeux anniversaire</b> à :\n'
+                }
+                users.forEach((user, index, array) => {
+                    if (index !== array.length - 1) {
+                        msg += `├ <a href = "https://linkcs.fr/user/${user.login}">${user.name}</a>\n`
+                    } else {
+                        msg += `└ <a href = "https://linkcs.fr/user/${user.login}">${user.name}</a>\n`
+                    }
+                })
+                return bot.sendMessage(chan.chatId, msg, { parse_mode: 'HTML' });
             })
         })
     })

@@ -48,7 +48,7 @@ app.get('/auth', function (req, res) {
     if (!req.query.code || !req.query.state) return res.sendFile(`${__dirname}/auth.html`)
 
 return getFirstToken(req.query.code, req.query.state).then(chan => {
-        bot.sendMessage(chan.chatId, `@${chan.username} s'est connecté à OAuth2, shall we begin?`)
+        bot.sendMessage(chan.chatId, `@${chan.username} s'est connecté à OAuth2, shall we begin?\nFaites /search XXX pour chercher une composition sur linkCS et ajouter ses membres à votre liste d'anniversaire.`)
         res.redirect(301, `${config.website.protocol}://${config.website.hostname}/auth`)
     })
 })
