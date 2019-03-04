@@ -62,6 +62,7 @@ function getGroupById(chan, id) {
     }).catch(err => { console.error(err) })
 }
 
+// Récupération des infos sur une compo (nom, id, asso)
 function getCompoGroupById(chan, id) {
     const req = `query {composition(id: ${id}) {id label beginningDate association {id name}}}`
     return sendRequest(req, chan).then(body => {
@@ -80,7 +81,7 @@ function getCompoGroupById(chan, id) {
     }).catch(err => { console.error(err) })
 }
 
-
+// Récupération des infos persodepuis l'auth VR
 function getMe(chan) {
     return getNewTokenIfNecessary(chan).then(chan => {
         const options = {
@@ -91,7 +92,6 @@ function getMe(chan) {
         return rp('https://auth.viarezo.fr/api/user/show/me', options)
     })
 }
-
 
 // Récupération d'un token
 function getFirstToken(code, state) {
@@ -132,7 +132,6 @@ function getFirstToken(code, state) {
     })
 }
 
-
 // Récupération d'un nouveau token
 function getNewToken(chan) {
 
@@ -167,4 +166,13 @@ function getNewTokenIfNecessary(chan) {
     }
 }
 
-module.exports = { getBirthdays, sendRequest, searchGroups, getGroupById, getCompoGroupById, getMe, getFirstToken, getNewToken };
+module.exports = {
+    getBirthdays,
+    sendRequest,
+    searchGroups,
+    getGroupById,
+    getCompoGroupById,
+    getMe,
+    getFirstToken,
+    getNewToken
+};
