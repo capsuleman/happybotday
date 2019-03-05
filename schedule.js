@@ -31,7 +31,7 @@ function addSchedule(chan, time, bot) {
                 } else { // chan à plusieurs
                     var msg = '<b>Joyeux anniversaire</b> à :\n'
                 }
-                users.forEach((user, index, array) => {
+                newUsers.forEach((user, index, array) => {
                     if (index !== array.length - 1) {
                         msg += `├ <a href = "https://linkcs.fr/user/${user.login}">${user.name}</a>\n`
                     } else {
